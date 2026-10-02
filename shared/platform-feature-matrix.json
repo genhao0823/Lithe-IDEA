@@ -554,6 +554,33 @@
       "verification": "同时打开多个项目和文件，确认标签、项目上下文和关闭恢复行为。 Windows 重复打开同一本地目录（含大小写、分隔符和目录链接别名）时，恢复并聚焦已有窗口及项目标签；连续打开只产生一个窗口，关闭或打开失败后可以重试。"
     },
     {
+      "id": "windows-taskbar-project-titles",
+      "area": "工作区",
+      "group": "工作区生命周期",
+      "capability": "Windows 任务栏与 Alt+Tab 显示项目展示名和活动文件，同名项目附加路径，工具页只显示项目",
+      "macos": {
+        "implementationStatus": "platform-specific",
+        "verificationStatus": "not-applicable",
+        "evidence": [
+          ".agents/notes/implemented/feature/2026-10-02-windows-taskbar-project-titles.md"
+        ]
+      },
+      "windows": {
+        "implementationStatus": "implemented",
+        "verificationStatus": "pending",
+        "evidence": [
+          "windows/tauri/src/features/window/utils/window-title-context.ts",
+          "windows/tauri/src/features/window/services/window-title-source.ts",
+          "windows/tauri/src/features/window/services/window-title-sync.ts",
+          "windows/tauri/src/features/window/hooks/use-native-window-title.ts",
+          "windows/tauri/src-tauri/src/window_title.rs"
+        ]
+      },
+      "owner": "Workspace",
+      "verification": "Windows：打开两个不同项目与不同目录的同名项目，检查任务栏悬停和 Alt+Tab 标题；切换项目、分屏、文件、终端、搜索与 Diff，确认文件名只来自当前活动文件；修改项目别名、关闭项目或窗口，确认其余窗口的重名路径同步恢复。覆盖独立文件、预览源文件、中文、UNC 路径、启动恢复与初始化失败；运行前端标题上下文/同步/状态源测试和宿主 window_title 测试及计时报告。",
+      "notes": "仅 Windows 原生标题展示；复用已有项目与窗口归属，不改变应用内布局。Windows 11 已验证原生标题、文件切换、Markdown 预览、终端焦点、跨窗口重名恢复及 Alt+Tab 标题；任务栏悬停和 Windows 10 外观仍待验证。"
+    },
+    {
       "id": "editor-text-tabs",
       "area": "编辑器",
       "group": "文本编辑",

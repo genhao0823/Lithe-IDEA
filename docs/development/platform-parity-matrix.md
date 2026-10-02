@@ -4,9 +4,9 @@
 
 - 最后复核：2026-09-29
 - 盘点状态：initial-static-inventory（根据 macOS Views/Application/Services、Windows features/extensions 和共享契约的代码入口进行初版盘点；未替代真实运行验收。）
-- 功能项：120
-- macOS：实现：✅ 105 已实现，🟡 3 部分实现，❌ 7 未实现，🧩 5 平台专属；验证：✔️ 0 已验证，🔍 108 待验证，— 12 不适用
-- Windows：实现：✅ 102 已实现，🟡 11 部分实现，❌ 5 未实现，🧩 2 平台专属；验证：✔️ 0 已验证，🔍 113 待验证，— 7 不适用
+- 功能项：121
+- macOS：实现：✅ 105 已实现，🟡 3 部分实现，❌ 7 未实现，🧩 6 平台专属；验证：✔️ 0 已验证，🔍 108 待验证，— 13 不适用
+- Windows：实现：✅ 103 已实现，🟡 11 部分实现，❌ 5 未实现，🧩 2 平台专属；验证：✔️ 0 已验证，🔍 114 待验证，— 7 不适用
 
 ## 实现状态定义
 
@@ -57,7 +57,7 @@
 </details>
 
 <details>
-<summary><strong>工作区</strong> · 7 个能力点</summary>
+<summary><strong>工作区</strong> · 8 个能力点</summary>
 
 | 功能组 | 能力点 | macOS | Windows | 负责人 | 验证方式 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -65,6 +65,7 @@
 | 工作区生命周期 | **文件树与文件操作**<br><sub>workspace-files</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`macos/Sources/Lithe/Views/Workspace`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/file-system`</sub> | Workspace | 新建、移动、重命名、删除文件和目录，并确认相对路径与错误提示一致。 |  |
 | 工作区生命周期 | **脏状态、保存与外部修改**<br><sub>workspace-document-sync</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`macos/Sources/Lithe/Models/Editor`、`macos/Sources/Lithe/Services/Workspace`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/editor`、`windows/tauri/src/features/file-system`</sub> | Workspace | 编辑未保存文件、外部修改文件并重启应用，确认冲突、保存和恢复行为。 |  |
 | 工作区生命周期 | **多项目与多标签**<br><sub>workspace-tabs-projects</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`macos/Sources/Lithe/Views/Workspace`、`macos/Sources/Lithe/Views/Editor`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/workspace`、`windows/tauri/src/features/tabs`、`windows/tauri/src-tauri/src/project_windows.rs`、`windows/tauri/src-tauri/src/project_window_registry.rs`、`windows/tauri/src/features/window/services/project-window-router.ts`</sub> | Workspace | 同时打开多个项目和文件，确认标签、项目上下文和关闭恢复行为。 Windows 重复打开同一本地目录（含大小写、分隔符和目录链接别名）时，恢复并聚焦已有窗口及项目标签；连续打开只产生一个窗口，关闭或打开失败后可以重试。 |  |
+| 工作区生命周期 | **Windows 任务栏与 Alt+Tab 显示项目展示名和活动文件，同名项目附加路径，工具页只显示项目**<br><sub>windows-taskbar-project-titles</sub> | 🧩 平台专属<br><sub>— 不适用</sub><br><sub>`.agents/notes/implemented/feature/2026-10-02-windows-taskbar-project-titles.md`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/window/utils/window-title-context.ts`、`windows/tauri/src/features/window/services/window-title-source.ts`、`windows/tauri/src/features/window/services/window-title-sync.ts`、`windows/tauri/src/features/window/hooks/use-native-window-title.ts`、`windows/tauri/src-tauri/src/window_title.rs`</sub> | Workspace | Windows：打开两个不同项目与不同目录的同名项目，检查任务栏悬停和 Alt+Tab 标题；切换项目、分屏、文件、终端、搜索与 Diff，确认文件名只来自当前活动文件；修改项目别名、关闭项目或窗口，确认其余窗口的重名路径同步恢复。覆盖独立文件、预览源文件、中文、UNC 路径、启动恢复与初始化失败；运行前端标题上下文/同步/状态源测试和宿主 window_title 测试及计时报告。 | 仅 Windows 原生标题展示；复用已有项目与窗口归属，不改变应用内布局。Windows 11 已验证原生标题、文件切换、Markdown 预览、终端焦点、跨窗口重名恢复及 Alt+Tab 标题；任务栏悬停和 Windows 10 外观仍待验证。 |
 | 项目浏览 | **项目文件树与资源打开**<br><sub>file-explorer</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`macos/Sources/Lithe/Views/Workspace/ProjectSidebarView.swift`、`macos/Sources/Lithe/Models/Workspace`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/file-explorer`、`windows/tauri/src/features/sidebar`</sub> | Workspace | 浏览目录、展开/折叠、打开资源并在文件变更后刷新树。 |  |
 | 项目浏览 | **项目依赖与模块浏览**<br><sub>dependency-browser</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`macos/Sources/Lithe/Views/Workspace/DependencySidebarView.swift`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/maven`、`windows/tauri/src/features/sidebar`</sub> | Workspace / Java | 打开 Maven 项目依赖和模块树，验证导航、刷新和空项目状态。 |  |
 | 远程开发 | **远程连接与远程路径工作区**<br><sub>remote-workspace</sub> | ❌ 未实现<br><sub>— 不适用</sub><br><sub>`macos/Sources/Lithe/Services`</sub> | ✅ 已实现<br><sub>🔍 待验证</sub><br><sub>`windows/tauri/src/features/remote`、`windows/tauri/src/features/file-system`</sub> | Remote | Windows 验证连接、密码提示、远程路径、断线和重连；macOS 需要补充产品入口或明确不支持。 |  |

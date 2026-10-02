@@ -19,6 +19,10 @@ pub struct ProjectWindowRegistry {
 }
 
 impl ProjectWindowRegistry {
+    pub fn owner(&self, identity: &Handle) -> Option<&ProjectWindowOwner> {
+        self.owners.get(identity)
+    }
+
     pub fn identity(path: &Path) -> Result<Handle, String> {
         if !path.is_dir() {
             return Err("Project directory is unavailable".into());
