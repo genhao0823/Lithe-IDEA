@@ -4,13 +4,25 @@ import type { PaneContent } from "@/features/panes/types/pane-content.types";
 import { WorkspaceRuntimeRegistry } from "@/features/workspace/runtime/workspace-runtime-registry";
 import { WELCOME_WORKSPACE_ID } from "@/features/workspace/types/workspace-runtime.types";
 import type { WindowTitleBufferState, WindowTitleContext, WindowTitlePaneState, WindowTitleProject } from "../utils/window-title-context";
-import { createWindowTitleSource } from "./window-title-source";
+import { createWindowTitleSource, type WindowTitleSidebarState } from "./window-title-source";
 import { startWindowTitleSync } from "./window-title-sync";
 
 function harness() {
   const registry = new WorkspaceRuntimeRegistry();
   const keyboardContext = createStore(() => ({ contexts: { terminalFocus: false, hasSelection: false } }));
   const tabs = createStore<{ projectTabs: WindowTitleProject[] }>(() => ({ projectTabs: [] }));
+  const focusListeners = new Set<() => void>();
+  let sidebarFocus = false;
+  const focus = {
+    isSidebarFocused: () => sidebarFocus,
+    subscribe: (listener: () => void) => {
+      focusListeners.add(listener);
+      return () => { focusListeners.delete(listener); };
+    },
+  };
+  registry.registerStore<WindowTitleSidebarState>("window-ui", () => createStore(() => ({
+    isSidebarVisible: true, isGitViewActive: false, isGitHubPRsViewActive: false, activeSidebarView: "search",
+  })));
   registry.registerStore<WindowTitlePaneState>("pane", () => createStore(() => ({
     root: { id: "main", type: "group", bufferIds: ["file"], activeBufferId: "file" },
     bottomRoot: { id: "bottom", type: "group", bufferIds: [], activeBufferId: null },
@@ -25,8 +37,44 @@ function harness() {
     registry.getStore<WindowTitlePaneState>("pane", id);
     registry.getStore<WindowTitleBufferState>("editor-buffer", id);
   };
-  return { registry, tabs, keyboardContext, addWorkspace, source: createWindowTitleSource({ registry, tabs, keyboardContext }) };
+  return {
+    registry, tabs, keyboardContext, addWorkspace,
+    setSidebarFocus: (value: boolean) => { sidebarFocus = value; for (const listener of focusListeners) listener(); },
+    source: createWindowTitleSource({ registry, tabs, keyboardContext, focus }),
+  };
 }
+
+test("search focus clears the file only while the active workspace search sidebar is visible", () => {
+  const h = harness(); h.addWorkspace("A"); h.addWorkspace("B");
+  h.registry.activateWorkspace({ id: "A", name: "A" }, "ready");
+  const uiA = h.registry.getStore<WindowTitleSidebarState>("window-ui", "A");
+  const uiB = h.registry.getStore<WindowTitleSidebarState>("window-ui", "B");
+  let changes = 0;
+  const stop = h.source.subscribe(() => { changes++; });
+  try {
+    expect(h.source.readContext().fileName).toBe("A.png");
+    h.setSidebarFocus(true);
+    expect(h.source.readContext().fileName).toBeNull();
+    h.setSidebarFocus(false);
+    expect(h.source.readContext().fileName).toBe("A.png");
+    h.setSidebarFocus(true);
+    uiA.setState({ isSidebarVisible: false });
+    expect(h.source.readContext().fileName).toBe("A.png");
+    uiA.setState({ isSidebarVisible: true, isGitViewActive: true });
+    expect(h.source.readContext().fileName).toBe("A.png");
+    h.registry.activateWorkspace({ id: "B", name: "B" }, "ready");
+    expect(h.source.readContext().fileName).toBeNull();
+    const before = changes;
+    uiA.setState({ activeSidebarView: "files" });
+    expect(changes).toBe(before);
+    uiB.setState({ activeSidebarView: "files" });
+    expect(changes).toBe(before + 1);
+    expect(h.source.readContext().fileName).toBe("B.png");
+  } finally { stop(); }
+  const before = changes;
+  h.setSidebarFocus(false); uiB.setState({ isSidebarVisible: false });
+  expect(changes).toBe(before);
+});
 
 test("bottom terminal focus clears the editor file and restores it when focus returns", () => {
   const h = harness();
@@ -191,4 +239,22 @@ test("workspace transitions and failed-open rollback never mix project and file 
     sync.stop();
     await Promise.resolve();
   }
+});
+
+test("initialization status forces identity refresh even when title text is unchanged", async () => {
+  const h = harness(); h.addWorkspace("A");
+  h.registry.activateWorkspace({ id: "A", name: "A" }, "opening");
+  h.registry.updateWorkspaceStatus("A", "opening");
+  h.registry.getStore<WindowTitleBufferState>("editor-buffer", "A").setState({ buffers: [] });
+  const sync = synchronization(h.source);
+  try {
+    sync.flush(); await Promise.resolve();
+    h.registry.updateWorkspaceStatus("A", "ready");
+    sync.flush(); await Promise.resolve();
+    expect(sync.requests).toHaveLength(2);
+    expect(sync.requests[1]).toEqual(sync.requests[0]);
+    h.registry.updateWorkspaceStatus("A", "ready");
+    sync.flush();
+    expect(sync.requests).toHaveLength(2);
+  } finally { sync.stop(); await Promise.resolve(); }
 });

@@ -293,6 +293,7 @@ pub async fn create_app_window(app: AppHandle, request: Option<Value>) -> Result
         &label,
         initial_path,
         project_path.is_some(),
+        &registry.title_snapshot(),
     );
     let mut query = url::form_urlencoded::Serializer::new(String::new());
     if let Some(request) = request.and_then(|value| value.as_object().cloned()) {

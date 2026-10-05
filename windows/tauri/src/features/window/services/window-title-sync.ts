@@ -2,7 +2,7 @@ import type { WindowTitleContext } from "../utils/window-title-context";
 
 interface WindowTitleSyncDependencies {
   readContext: () => WindowTitleContext;
-  subscribe: (listener: () => void) => () => void;
+  subscribe: (listener: (force?: boolean) => void) => () => void;
   subscribeFocus: (listener: () => void) => () => void;
   update: (context: WindowTitleContext) => Promise<void>;
   reportError: (error: unknown) => void;
@@ -38,6 +38,8 @@ export function startWindowTitleSync(dependencies: WindowTitleSyncDependencies):
         await dependencies.update(next.context);
         successfulKey = next.key;
       } catch (error) {
+        // 宿主可能已应用标题但应答失败，旧成功缓存不能证明当前原生标题。
+        successfulKey = null;
         if (!disposed) dependencies.reportError(error);
       } finally {
         inFlight = false;
@@ -70,7 +72,7 @@ export function startWindowTitleSync(dependencies: WindowTitleSyncDependencies):
     });
   };
 
-  const unsubscribe = dependencies.subscribe(() => request());
+  const unsubscribe = dependencies.subscribe((force) => request(force));
   let unsubscribeFocus: () => void;
   try {
     unsubscribeFocus = dependencies.subscribeFocus(() => request(true));

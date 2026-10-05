@@ -168,6 +168,25 @@ test("recovers failed requests when project metadata changes", async () => {
   }
 });
 
+test("failed B acknowledgement invalidates successful A cache before queued return to A", async () => {
+  const h = harness();
+  let nativeFile: string | null = null;
+  try {
+    h.flush(); nativeFile = h.requests[0]!.context.fileName;
+    h.requests[0]!.resolve(); await Promise.resolve();
+    h.change(context("B.java")); h.flush();
+    nativeFile = h.requests[1]!.context.fileName;
+    h.change(context()); h.flush();
+    h.requests[1]!.reject(new Error("applied but acknowledgement failed"));
+    await Promise.resolve();
+    expect(h.requests).toHaveLength(3);
+    nativeFile = h.requests[2]!.context.fileName;
+    expect(nativeFile).toBe("First.java");
+    h.requests[2]!.resolve(); await Promise.resolve();
+    expect(h.errors).toHaveLength(1);
+  } finally { await h.dispose(); }
+});
+
 test("disposal clears subscriptions and prevents scheduled or pending requests", async () => {
   const h = harness();
   try {

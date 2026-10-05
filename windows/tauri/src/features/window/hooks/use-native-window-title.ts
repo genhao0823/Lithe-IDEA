@@ -6,16 +6,19 @@ import { workspaceRuntimeRegistry } from "@/features/workspace/runtime/workspace
 import { useWorkspaceTabsStore } from "../stores/workspace-tabs.store";
 import { createWindowTitleSource } from "../services/window-title-source";
 import { startWindowTitleSync } from "../services/window-title-sync";
+import { createWindowTitleFocus } from "../services/window-title-focus";
 
 export function useNativeWindowTitle() {
   useEffect(() => {
     if (!IS_WINDOWS) return;
+    const focus = createWindowTitleFocus(document);
     const source = createWindowTitleSource({
       registry: workspaceRuntimeRegistry,
       tabs: useWorkspaceTabsStore,
       keyboardContext: useKeymapStore,
+      focus,
     });
-    return startWindowTitleSync({
+    const stop = startWindowTitleSync({
       ...source,
       subscribeFocus: (listener) => {
         window.addEventListener("focus", listener);
@@ -24,5 +27,9 @@ export function useNativeWindowTitle() {
       update: (context) => invoke<void>("update_window_title_context", { context }),
       reportError: (error) => console.warn("[window-title] 原生窗口标题同步失败", error),
     });
+    return () => {
+      stop();
+      focus.dispose();
+    };
   }, []);
 }
